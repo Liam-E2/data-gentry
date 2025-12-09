@@ -2,7 +2,7 @@ import pytest
 import tempfile
 import csv
 
-from src.data_gent.analysis.csv import DuckDBTools, DuckDBColumn
+from src.data_gent.analysis.csv import DuckDBTools, DuckDBColumn, SampleData
 
 
 SAMPLE_CSV = [
@@ -38,3 +38,41 @@ def test_describe_csv():
     assert "BIGINT" in types
     assert "VARCHAR" in types or "STRING" in types
     assert "DOUBLE" in types or "FLOAT" in types
+
+
+def test_get_sample_data():
+    # Create a temporary CSV file
+    with tempfile.NamedTemporaryFile(mode="w+", suffix=".csv", delete=False) as tmp:
+        writer = csv.writer(tmp)
+        writer.writerows(SAMPLE_CSV)
+        tmp_path = tmp.name
+
+    tools = DuckDBTools()
+
+    # Call the method requesting all columns, limit 2 rows
+    sample_data: SampleData = tools.get_sample_data(
+        file_path=tmp_path,
+        columns=["id", "name", "score"],
+        n_rows=2
+    )
+
+    # Validate the returned object is a SampleData instance
+    assert isinstance(sample_data, SampleData)
+
+    # Validate columns
+    assert sample_data.columns == ["id", "name", "score"]
+
+    # Validate rows count
+    assert len(sample_data.rows) == 2
+
+    # Validate row types and content
+    for row in sample_data.rows:
+        assert isinstance(row, dict)
+        assert set(row.keys()) == set(sample_data.columns)
+        assert isinstance(row["id"], int)
+        assert isinstance(row["name"], str)
+        assert isinstance(row["score"], float)
+
+    # validate exact values
+    expected_first_row = {"id": 1, "name": "Alice", "score": 95.5}
+    assert sample_data.rows[0] == expected_first_row
