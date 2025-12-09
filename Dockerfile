@@ -21,5 +21,3 @@ WORKDIR /data-gent
 COPY --from=base /data-gent/dist ./dist
 
 RUN pip install ./dist/*.whl
-
-CMD ["python3"]
