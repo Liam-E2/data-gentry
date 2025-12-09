@@ -10,3 +10,8 @@ dependencies = [
     "duckdb>=1.4.3",
     "strands-agents>=1.19.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
