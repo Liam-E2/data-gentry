@@ -8,6 +8,9 @@ dependencies = [
     "boto3>=1.42.5",
     "boto3-stubs>=1.42.5",
     "duckdb>=1.4.3",
+    "duckdb-engine>=0.17.0",
+    "pytz>=2025.2",
+    "sqlalchemy>=2.0.45",
     "strands-agents>=1.19.0",
 ]
 
