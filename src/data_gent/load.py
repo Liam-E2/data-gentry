@@ -1,9 +1,10 @@
 import duckdb
 from sqlalchemy import insert, Engine
-from semchunk import chunkerify
+
 
 from .db_models import Documents, DocumentChunks
 from .embeddings import EmbeddingSource
+from .chunking import Chunker
 from .config import settings
 
 
@@ -23,9 +24,8 @@ def create_vss_index(db_path: str, config: dict = {}, install: bool = False):
 def load_document(
         engine: Engine,
         embedding_source: EmbeddingSource,
-        file: str, 
-        chunk_size: int = 60, 
-        overlap: float=0.15):
+        chunker: Chunker,
+        file: str):
     
     with open(file, "r") as f:
         text = f.read()
@@ -38,8 +38,6 @@ def load_document(
 
     with engine.begin() as conn:
         doc_id = conn.execute(stmt).scalar_one()
-
-        chunker = chunkerify(lambda text: len(text.split()), chunk_size)
         chunks = [
             {
                 "document_id": doc_id,
@@ -47,7 +45,7 @@ def load_document(
                 "embedding": embedding_source.get_embedding(chunk)
             }
 
-            for chunk in chunker(text, overlap=overlap)
+            for chunk in chunker.chunk(text)
             ]
 
         stmt = insert(DocumentChunks).values(chunks)

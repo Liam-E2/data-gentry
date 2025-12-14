@@ -29,9 +29,7 @@ def test_chunks_table(db_session):
     test_embedding = {
         "document_id": 1,
         "content": "test",
-        "embedding": [1.0 for i in range(settings.vec_size)],
-        "start_pos": 0,
-        "end_pos": 3
+        "embedding": [1.0 for i in range(settings.vec_size)]
     }
     db_session.add(DocumentChunks(**test_embedding))
     db_session.commit()
@@ -41,5 +39,3 @@ def test_chunks_table(db_session):
     assert chunk.document_id == 1
     assert chunk.content == "test"
     assert chunk.embedding == tuple([1.0 for i in range(settings.vec_size)])
-    assert chunk.start_pos == 0
-    assert chunk.end_pos == 3

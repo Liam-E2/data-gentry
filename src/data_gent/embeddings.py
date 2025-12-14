@@ -3,7 +3,6 @@ from typing import List
 from abc import ABC, abstractmethod
 
 from botocore.client import BaseClient
-
 from .config import settings
 
 
