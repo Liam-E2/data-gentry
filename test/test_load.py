@@ -1,4 +1,5 @@
 from tempfile import NamedTemporaryFile
+import os
 
 from sqlalchemy import select
 from pytest import fixture
@@ -34,3 +35,5 @@ def test_load_db(docfile):
             assert isinstance(row.embedding, tuple)
             assert isinstance(row.embedding[0], float)
             assert len(row.embedding) == settings.vec_size
+
+    os.remove(settings.db_path)
