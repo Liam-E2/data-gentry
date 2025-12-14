@@ -45,6 +45,5 @@ def load_document(
             ]
 
         conn.execute(insert(DocumentChunks).values(chunks))
-        conn.commit()
     
     create_vss_index(engine)
