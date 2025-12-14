@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from src.data_gent.db import Documents,  DocumentChunks
+from src.data_gent.db_models import Documents,  DocumentChunks
 
+from src.data_gent.config import settings
 
 def test_create_documents_table(db_session):
     db_session.add(Documents(content="test"))
@@ -28,7 +29,7 @@ def test_chunks_table(db_session):
     test_embedding = {
         "document_id": 1,
         "content": "test",
-        "embedding": [1.0, 2.0, 3.0],
+        "embedding": [1.0 for i in range(settings.vec_size)],
         "start_pos": 0,
         "end_pos": 3
     }
@@ -39,6 +40,6 @@ def test_chunks_table(db_session):
     assert chunk.chunk_id == 1
     assert chunk.document_id == 1
     assert chunk.content == "test"
-    assert chunk.embedding == [1.0, 2.0, 3.0]
+    assert chunk.embedding == tuple([1.0 for i in range(settings.vec_size)])
     assert chunk.start_pos == 0
     assert chunk.end_pos == 3
