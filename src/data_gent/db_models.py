@@ -2,7 +2,7 @@ from datetime import datetime
 from dataclasses import dataclass
 
 from duckdb_engine.datatypes import BigInteger
-from sqlalchemy import Sequence, Text, TIMESTAMP, func, ForeignKey, Column
+from sqlalchemy import Sequence, Text, TIMESTAMP, func, ForeignKey, Column, DDL
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
@@ -38,3 +38,9 @@ class DocumentChunks(BaseTable):
     document_id: Mapped[int] = mapped_column("document_id", BigInteger(), ForeignKey("documents.id"))
     content: Mapped[str] = mapped_column("content", Text())
     embedding: Mapped[list[str]] = Column(FloatArray(settings.vec_size))
+
+
+INDEX_DDL = DDL("""
+                DROP INDEX IF EXISTS embeddings_hnsw_index;
+                CREATE INDEX embeddings_hnsw_index ON document_chunks USING HNSW (embedding);
+                """)
