@@ -19,4 +19,8 @@ dependencies = [
 dev = [
     "mypy>=1.19.0",
     "pytest>=9.0.2",
+    "pytest-env>=1.2.0",
 ]
+
+[tool.pytest_env]
+DATAGENT_DB_PATH = "./db.duckdb"
