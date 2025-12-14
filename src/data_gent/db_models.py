@@ -1,8 +1,8 @@
 from datetime import datetime
 from dataclasses import dataclass
 
-from duckdb_engine.datatypes import Struct, BigInteger
-from sqlalchemy import Sequence, Text, TIMESTAMP, ARRAY, func, ForeignKey, Float, Column
+from duckdb_engine.datatypes import BigInteger
+from sqlalchemy import Sequence, Text, TIMESTAMP, func, ForeignKey, Column
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
@@ -37,6 +37,4 @@ class DocumentChunks(BaseTable):
     chunk_id: Mapped[int] = mapped_column(BigInteger(), Sequence("chunk_id"), primary_key=True)
     document_id: Mapped[int] = mapped_column("document_id", BigInteger(), ForeignKey("documents.id"))
     content: Mapped[str] = mapped_column("content", Text())
-    start_pos: Mapped[int] = mapped_column("start_pos", BigInteger())
-    end_pos: Mapped[int] = mapped_column("end_pos", BigInteger())
     embedding: Mapped[list[str]] = Column(FloatArray(settings.vec_size))

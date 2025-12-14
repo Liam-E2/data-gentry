@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 
 from botocore.client import BaseClient
 
+from .config import settings
+
 
 class EmbeddingSource(ABC):
     """
@@ -20,7 +22,7 @@ class EmbeddingSource(ABC):
 
 class TestEmbeddingSource(EmbeddingSource):
     def get_embedding(self, text: str) -> List[float]:
-        return [1.0, 2.0, 3.0]
+        return [1.0 for i in range(settings.vec_size)]
 
 
 class BedrockEmbeddingSource(EmbeddingSource):
@@ -40,5 +42,8 @@ class BedrockEmbeddingSource(EmbeddingSource):
         )
         response_body = json.loads(response['body'].read())
         embedding = response_body.get('embedding')
+        
+        if len(embedding) != settings.vec_size:
+            raise ValueError(f"Got embeddings of length {len(embedding)}; DATAGENT_VEC_SIZE={settings.vec_size}")
         
         return embedding
