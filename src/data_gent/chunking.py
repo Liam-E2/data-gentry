@@ -30,4 +30,4 @@ class SemchunkChunker:
 
 
     def chunk(self, text: str) -> list[str]:
-        return self.chunker(text, overlap=self.overlap)
+        return self.chunker(text, overlap=self.overlap) # type: ignore

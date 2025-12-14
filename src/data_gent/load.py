@@ -44,8 +44,7 @@ def load_document(
             for chunk in chunker.chunk(text)
             ]
 
-        stmt = insert(DocumentChunks).values(chunks)
-        conn.execute(stmt)
+        conn.execute(insert(DocumentChunks).values(chunks))
         conn.commit()
     
     create_vss_index(engine)

@@ -37,7 +37,7 @@ class DocumentChunks(BaseTable):
     chunk_id: Mapped[int] = mapped_column(BigInteger(), Sequence("chunk_id"), primary_key=True)
     document_id: Mapped[int] = mapped_column("document_id", BigInteger(), ForeignKey("documents.id"))
     content: Mapped[str] = mapped_column("content", Text())
-    embedding: Mapped[list[str]] = Column(FloatArray(settings.vec_size))
+    embedding: Mapped[tuple[float]] = mapped_column("embedding", FloatArray(settings.vec_size))
 
 
 INDEX_DDL = DDL("""
