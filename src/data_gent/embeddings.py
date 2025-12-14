@@ -2,7 +2,7 @@ import json
 from typing import List
 from abc import ABC, abstractmethod
 
-from botocore.client import BaseClient
+from types_boto3_bedrock_runtime import BedrockRuntimeClient
 from .config import settings
 
 
@@ -28,7 +28,7 @@ class BedrockEmbeddingSource(EmbeddingSource):
     """
     Embedding source for AWS Bedrock.
     """
-    def __init__(self, client: BaseClient, model_id: str = "amazon.titan-embed-text-v2:0") -> None:
+    def __init__(self, client: BedrockRuntimeClient, model_id: str = "amazon.titan-embed-text-v2:0") -> None:
         self.client = client
         self.model_id = model_id
 

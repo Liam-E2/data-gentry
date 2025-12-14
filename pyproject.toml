@@ -12,6 +12,7 @@ dependencies = [
     "semchunk>=3.2.5",
     "sqlalchemy>=2.0.45",
     "strands-agents>=1.19.0",
+    "types-boto3[bedrock,bedrock-runtime]>=1.42.9",
 ]
 
 [dependency-groups]
