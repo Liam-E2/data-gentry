@@ -1,7 +1,9 @@
 from tempfile import NamedTemporaryFile
 import os
 
-from pytest import fixture
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy import text
+from pytest import fixture, raises
 
 from src.data_gent.connection import get_sqlalchemy_engine
 from src.data_gent.settings import settings
@@ -185,6 +187,10 @@ def test_retrieve(docfile):
             i += 1
 
         assert i == 5
+
+        with raises(ProgrammingError):
+            with eng.connect() as conn:
+                conn.execute(text("SELECT * FROM hnsw_results;"))
 
     except Exception:
         raise
