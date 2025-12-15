@@ -60,8 +60,8 @@ class InputType(StrEnum):
 def load_data(
         engine: Engine, 
         path: str, 
-        input_type: InputType | str = None,
-        table_name: str = None,
+        input_type: InputType | str | None = None,
+        table_name: str | None = None,
         opts: dict = dict()) -> str:
     """
     Load data file into duckdb, returning the created table name.
