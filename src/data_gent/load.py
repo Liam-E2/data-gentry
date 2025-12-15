@@ -19,7 +19,8 @@ def load_document(
         engine: Engine,
         embedding_source: EmbeddingSource,
         chunker: Chunker,
-        file: str):
+        file: str,
+        table_name: str | None = None):
     """
     Load a text document into duckdb, break it into chunks, 
     create an embedding vector for each chunk, then
@@ -30,7 +31,7 @@ def load_document(
 
     stmt = (
         insert(Documents)
-        .values(content=text)
+        .values(content=text, table=table_name)
         .returning(Documents.id)
     )
 
