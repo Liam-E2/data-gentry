@@ -22,11 +22,13 @@ def retrieve(
         limit: int = 200,
         fts_weight: float = 0.8) -> list[RetrievalResult]:
     """
-    Retrieve top-n records based on HNSW index + cosine similarity.
+    Retrieve top-n records based on bm25 + cosine similarity.
 
     NOTE: to actually hit the index, has to be computed seperately - the duckdb extension
     doesn't recognize subqueries/window functions/etc. that could be accelerated.
     """
+
+    # Ugly hack to pass FLOAT[N] & actually hit the HNSW index
     hnsw_query_text = text(f"""
     CREATE TEMPORARY TABLE hnsw_results AS
     SELECT
