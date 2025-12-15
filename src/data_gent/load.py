@@ -82,7 +82,7 @@ def load_data(
     match input_type:
         case InputType.PARQUET: select = f"SELECT * From read_parquet(:path{opts_string});"
         case InputType.CSV: select = f"SELECT * From read_csv(:path{opts_string});"
-        case InputType.JSON: select = f"SELECT * FROM read_json_auto(:path{opts_string});"
+        case InputType.JSON: select = f"SELECT * FROM read_json(:path{opts_string});"
         case _: raise ValueError(f"Unknown input type; must specify one of {InputType._member_names_}")
     
     stmt = text(f"CREATE TABLE {table_name} AS {select}")
