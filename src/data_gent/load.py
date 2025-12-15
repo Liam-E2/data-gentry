@@ -8,7 +8,7 @@ from .chunking import Chunker
 from .settings import settings
 
 
-def create_vss_index(engine: Engine):
+def create_chunk_indices(engine: Engine):
     with engine.connect() as conn:
         conn.execute(INDEX_DDL)
         conn.commit()
@@ -49,7 +49,7 @@ def load_document(
 
         conn.execute(insert(DocumentChunks).values(chunks))
     
-    create_vss_index(engine)
+    create_chunk_indices(engine)
 
 
 class InputType(StrEnum):
