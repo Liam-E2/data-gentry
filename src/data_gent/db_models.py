@@ -42,7 +42,9 @@ class DocumentChunks(BaseTable):
 
 INDEX_DDL = DDL("""
                 DROP INDEX IF EXISTS embeddings_hnsw_index;
-                CREATE INDEX embeddings_hnsw_index ON document_chunks USING HNSW (embedding);
+                CREATE INDEX embeddings_hnsw_index ON document_chunks 
+                USING HNSW (embedding)
+                WITH (metric = 'cosine');
 
                 PRAGMA create_fts_index('document_chunks', 'chunk_id', 'content', overwrite=1);
                 """)
