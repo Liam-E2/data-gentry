@@ -35,29 +35,31 @@ def csvfile():
 
 def test_load_db(docfile):
     eng = get_sqlalchemy_engine()
+    try:
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=8, overlap=0.0), docfile.name)
 
-    load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=8, overlap=0.0), docfile.name)
-
-    with eng.connect() as conn:
-        rows: list[DocumentChunks] = conn.execute(select(DocumentChunks)).fetchall()
-        for row in rows:
-            assert isinstance(row.chunk_id, int)
-            assert isinstance(row.document_id, int)
-            assert isinstance(row.content, str)
-            assert isinstance(row.embedding, tuple)
-            assert isinstance(row.embedding[0], float)
-            assert len(row.embedding) == settings.vec_size
-
-    os.remove(settings.db_path)
+        with eng.connect() as conn:
+            rows: list[DocumentChunks] = conn.execute(select(DocumentChunks)).fetchall()
+            for row in rows:
+                assert isinstance(row.chunk_id, int)
+                assert isinstance(row.document_id, int)
+                assert isinstance(row.content, str)
+                assert isinstance(row.embedding, tuple)
+                assert isinstance(row.embedding[0], float)
+                assert len(row.embedding) == settings.vec_size
+    except Exception:
+        raise
+    finally:
+        os.remove(settings.db_path)
 
 
 def test_load_csv(csvfile):
     eng = get_sqlalchemy_engine()
 
-    load_data(eng, csvfile.name, "csv")
+    table = load_data(eng, csvfile.name, "csv")
 
     with eng.begin() as conn:
-        result = conn.execute(text(f"select * from {os.path.basename(csvfile.name)}"))
+        result = conn.execute(text(f"select * from {table}"))
         assert set(result.keys()) == {"c1", "c2", "c3"}
         
         data = result.fetchall()
@@ -70,43 +72,49 @@ def test_load_csv(csvfile):
 
 def test_load_csv_with_opts(csvfile):
     eng = get_sqlalchemy_engine()
+    try:
+        table = load_data(eng, csvfile.name, "csv", opts={"header": True, "all_varchar": True})
 
-    load_data(eng, csvfile.name, "csv", opts={"header": True, "all_varchar": True})
-
-    with eng.begin() as conn:
-        result = conn.execute(text(f"select * from {os.path.basename(csvfile.name)}"))
-        assert set(result.keys()) == {"c1", "c2", "c3"}
+        with eng.begin() as conn:
+            result = conn.execute(text(f"select * from {table}"))
+            assert set(result.keys()) == {"c1", "c2", "c3"}
+            
+            data = result.fetchall()
+            assert data[0][0] == "a"
+            assert data[0][1] == "2"
+            assert data[0][2] == "3.1"
         
-        data = result.fetchall()
-        assert data[0][0] == "a"
-        assert data[0][1] == "2"
-        assert data[0][2] == "3.1"
-   
-    os.remove(settings.db_path)
+        os.remove(settings.db_path)
 
-    load_data(eng, csvfile.name, "csv", opts={"columns": {"c1": "text", "c2": "float", "c3": "float"}})
-    with eng.begin() as conn:
-        result = conn.execute(text(f"select * from {os.path.basename(csvfile.name)}"))
-        assert set(result.keys()) == {"c1", "c2", "c3"}
-        
-        data = result.fetchall()
-        assert data[0][0] == "a"
-        assert isinstance(data[0][1], float)
-        assert isinstance(data[0][2], float)
+        table = load_data(eng, csvfile.name, "csv", opts={"columns": {"c1": "text", "c2": "float", "c3": "float"}})
+        with eng.begin() as conn:
+            result = conn.execute(text(f"select * from {table}"))
+            assert set(result.keys()) == {"c1", "c2", "c3"}
+
+            data = result.fetchall()
+            assert data[0][0] == "a"
+            assert isinstance(data[0][1], float)
+            assert isinstance(data[0][2], float)
     
-    os.remove(settings.db_path)
+    except Exception:
+        raise
+    finally:
+        os.remove(settings.db_path)
 
 
 def test_filetype_inference(csvfile):
     eng = get_sqlalchemy_engine()
-    name = load_data(eng, csvfile.name)
-    with eng.begin() as conn:
-        result = conn.execute(text(f"select * from {name}"))
-        assert set(result.keys()) == {"c1", "c2", "c3"}
-        
-        data = result.fetchall()
-        assert data[0][0] == "a"
-        assert data[0][1] == 2
-        assert data[0][2] == 3.1
-   
-    os.remove(settings.db_path)
+    try:
+        name = load_data(eng, csvfile.name)
+        with eng.begin() as conn:
+            result = conn.execute(text(f"select * from {name}"))
+            assert set(result.keys()) == {"c1", "c2", "c3"}
+            
+            data = result.fetchall()
+            assert data[0][0] == "a"
+            assert data[0][1] == 2
+            assert data[0][2] == 3.1
+    except Exception:
+        raise
+    finally:
+        os.remove(settings.db_path)
