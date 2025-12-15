@@ -11,7 +11,8 @@ def get_sqlalchemy_engine() -> Engine:
     """
     conn = duckdb.connect(":memory:")
     conn.execute("INSTALL vss; INSTALL fts;")
-
+    conn.close()
+    
     eng = create_engine("duckdb:///" + settings.db_path, poolclass=NullPool, connect_args={
         "preload_extensions": ["vss", "fts"],
         "config": {"hnsw_enable_experimental_persistence": True}
