@@ -24,3 +24,4 @@ dev = [
 
 [tool.pytest_env]
 DATAGENT_DB_PATH = "./db.duckdb"
+DATAGENT_VEC_SIZE = 3
