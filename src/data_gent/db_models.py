@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from duckdb_engine.datatypes import BigInteger
-from sqlalchemy import Sequence, Text, TIMESTAMP, func, ForeignKey, DDL, Engine
+from sqlalchemy import Sequence, Text, TIMESTAMP, func, ForeignKey, DDL
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
