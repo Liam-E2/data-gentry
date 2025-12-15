@@ -5,7 +5,7 @@ from enum import StrEnum, auto
 from .db_models import Documents, DocumentChunks, INDEX_DDL
 from .embeddings import EmbeddingSource
 from .chunking import Chunker
-from .config import settings
+from .settings import settings
 
 
 def create_vss_index(engine: Engine):

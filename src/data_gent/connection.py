@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Engine, NullPool
 from sqlalchemy.orm import Session
 import duckdb
 
-from .config import settings
+from .settings import settings
 from .db_models import BaseTable
 
 

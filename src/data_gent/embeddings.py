@@ -3,7 +3,7 @@ from typing import List
 from abc import ABC, abstractmethod
 
 from types_boto3_bedrock_runtime import BedrockRuntimeClient
-from .config import settings
+from .settings import settings
 
 
 class EmbeddingSource(ABC):

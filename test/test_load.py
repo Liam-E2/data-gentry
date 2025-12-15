@@ -6,7 +6,7 @@ from sqlalchemy import select, text
 from pytest import fixture
 
 from src.data_gent.connection import get_sqlalchemy_engine
-from src.data_gent.config import settings
+from src.data_gent.settings import settings
 from src.data_gent.load import load_document, load_data
 from src.data_gent.embeddings import TestEmbeddingSource
 from src.data_gent.chunking import SemchunkChunker

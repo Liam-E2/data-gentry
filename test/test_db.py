@@ -2,7 +2,7 @@ from datetime import datetime
 
 from src.data_gent.db_models import Documents,  DocumentChunks
 
-from src.data_gent.config import settings
+from src.data_gent.settings import settings
 
 def test_create_documents_table(db_session):
     db_session.add(Documents(content="test"))

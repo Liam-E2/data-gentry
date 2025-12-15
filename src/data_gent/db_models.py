@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import UserDefinedType
 
-from .config import settings
+from .settings import settings
 
 
 class FloatArray(UserDefinedType):
