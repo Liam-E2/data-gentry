@@ -19,7 +19,9 @@ def retrieve(
         engine: Engine, 
         query: str,
         embedding_source: EmbeddingSource,
-        limit: int = 200,
+        limit: int,
+        cosine_limit: int = 200,
+        fts_limit: int = 200,
         fts_weight: float = 0.8) -> list[RetrievalResult]:
     """
     Retrieve top-n records based on bm25 + cosine similarity.
@@ -37,7 +39,7 @@ def retrieve(
         array_cosine_similarity(embedding, :queryvec\\:\\:FLOAT[{settings.vec_size}]) as cosine_similarity
     FROM document_chunks
     ORDER BY array_cosine_similarity(embedding, :queryvec\\:\\:FLOAT[{settings.vec_size}])
-    LIMIT 200;
+    LIMIT :cosine_limit;
     """)
 
     final_query_text = text("""
@@ -48,7 +50,7 @@ def retrieve(
             fts_main_document_chunks.match_bm25(chunk_id, :query, fields := 'content') AS bm25_score
         FROM document_chunks
         ORDER BY bm25_score
-        LIMIT 200
+        LIMIT :fts_limit
     ), combined as (
         SELECT
             COALESCE(b.chunk_id, v.chunk_id) AS chunk_id,
@@ -70,8 +72,8 @@ def retrieve(
     """)
 
     with engine.begin() as conn:
-        conn.execute(hnsw_query_text, {"queryvec": embedding_source.get_embedding(query)}).fetchall()
-        result = conn.execute(final_query_text, {"query": query, "limit": limit, "ftsweight": fts_weight}).fetchall()
+        conn.execute(hnsw_query_text, {"queryvec": embedding_source.get_embedding(query), "cosine_limit": cosine_limit}).fetchall()
+        result = conn.execute(final_query_text, {"query": query, "limit": limit, "ftsweight": fts_weight, "fts_limit": fts_limit}).fetchall()
 
     return [
         RetrievalResult(row[0], row[1], row[2], row[3], i)
