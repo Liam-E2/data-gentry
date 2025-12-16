@@ -30,7 +30,6 @@ def load_document(
         text = f.read()
 
     with engine.begin() as conn:
-        # Check if this document already exists (by content and table name)
         existing_doc = conn.execute(
             select(Documents.id)
             .where(Documents.content == text)
@@ -40,7 +39,6 @@ def load_document(
         if existing_doc:
             doc_id = existing_doc.id
         else:
-            # Create new document
             stmt = (
                 insert(Documents)
                 .values(content=text, table=table_name)
@@ -48,14 +46,13 @@ def load_document(
             )
             doc_id = conn.execute(stmt).scalar_one()
 
-        # Query existing chunks for this document to avoid duplicates
+        # Only insert new chunks that don't already exist for this document
         existing_chunks = conn.execute(
             select(DocumentChunks.content)
             .where(DocumentChunks.document_id == doc_id)
         ).fetchall()
         existing_content = {row.content for row in existing_chunks}
 
-        # Only insert new chunks that don't already exist for this document
         chunks = []
         for chunk in chunker.chunk(text):
             if chunk not in existing_content:
@@ -65,7 +62,6 @@ def load_document(
                     "embedding": embedding_source.get_embedding(chunk)
                 })
 
-        # Only insert if there are new chunks
         if chunks:
             conn.execute(insert(DocumentChunks).values(chunks))
     
