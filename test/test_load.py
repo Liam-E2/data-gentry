@@ -109,11 +109,47 @@ def test_filetype_inference(csvfile):
         with eng.begin() as conn:
             result = conn.execute(text(f"select * from {name}"))
             assert set(result.keys()) == {"c1", "c2", "c3"}
-            
+
             data = result.fetchall()
             assert data[0][0] == "a"
             assert data[0][1] == 2
             assert data[0][2] == 3.1
+    except Exception:
+        raise
+    finally:
+        os.remove(settings.db_path)
+
+
+def test_load_document_deduplicates_chunks(docfile):
+    """Test that re-loading the same document doesn't insert duplicate chunks."""
+    eng = get_sqlalchemy_engine()
+
+    try:
+        # First load - should insert all chunks
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=8, overlap=0.0), docfile.name)
+
+        with eng.connect() as conn:
+            first_load_chunks = conn.execute(select(DocumentChunks)).fetchall()
+            first_count = len(first_load_chunks)
+            doc_id = first_load_chunks[0].document_id
+
+        # Verify we actually got some chunks
+        assert first_count > 0
+
+        # Second load of same document - should skip all chunks
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=8, overlap=0.0), docfile.name)
+
+        with eng.connect() as conn:
+            second_load_chunks = conn.execute(select(DocumentChunks)).fetchall()
+            second_count = len(second_load_chunks)
+
+            # Verify no new chunks were added
+            assert second_count == first_count
+
+            # Verify no duplicate content for the same document_id
+            chunks_for_doc = [c for c in second_load_chunks if c.document_id == doc_id]
+            contents = [c.content for c in chunks_for_doc]
+            assert len(contents) == len(set(contents))
     except Exception:
         raise
     finally:

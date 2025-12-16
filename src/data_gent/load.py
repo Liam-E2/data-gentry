@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import insert, Engine, text
+from sqlalchemy import insert, Engine, text, select
 from enum import StrEnum, auto
 
 from .db_models import Documents, DocumentChunks, INDEX_DDL
@@ -29,25 +29,45 @@ def load_document(
     with open(file, "r") as f:
         text = f.read()
 
-    stmt = (
-        insert(Documents)
-        .values(content=text, table=table_name)
-        .returning(Documents.id)
-    )
-
     with engine.begin() as conn:
-        doc_id = conn.execute(stmt).scalar_one()
-        chunks = [
-            {
-                "document_id": doc_id,
-                "content": chunk,
-                "embedding": embedding_source.get_embedding(chunk)
-            }
+        # Check if this document already exists (by content and table name)
+        existing_doc = conn.execute(
+            select(Documents.id)
+            .where(Documents.content == text)
+            .where(Documents.table == table_name)
+        ).fetchone()
 
-            for chunk in chunker.chunk(text)
-            ]
+        if existing_doc:
+            doc_id = existing_doc.id
+        else:
+            # Create new document
+            stmt = (
+                insert(Documents)
+                .values(content=text, table=table_name)
+                .returning(Documents.id)
+            )
+            doc_id = conn.execute(stmt).scalar_one()
 
-        conn.execute(insert(DocumentChunks).values(chunks))
+        # Query existing chunks for this document to avoid duplicates
+        existing_chunks = conn.execute(
+            select(DocumentChunks.content)
+            .where(DocumentChunks.document_id == doc_id)
+        ).fetchall()
+        existing_content = {row.content for row in existing_chunks}
+
+        # Only insert new chunks that don't already exist for this document
+        chunks = []
+        for chunk in chunker.chunk(text):
+            if chunk not in existing_content:
+                chunks.append({
+                    "document_id": doc_id,
+                    "content": chunk,
+                    "embedding": embedding_source.get_embedding(chunk)
+                })
+
+        # Only insert if there are new chunks
+        if chunks:
+            conn.execute(insert(DocumentChunks).values(chunks))
     
     create_chunk_indices(engine)
 
