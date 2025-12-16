@@ -86,7 +86,7 @@ def load_data(
         case InputType.JSON: select = f"SELECT * FROM read_json(:path{opts_string});"
         case _: raise ValueError(f"Unknown input type; must specify one of {InputType._member_names_}")
     
-    stmt = text(f"CREATE TABLE {table_name} AS {select}")
+    stmt = text(f"CREATE TABLE IF NOT EXISTS {table_name} AS {select}")
     with engine.begin() as conn:
         conn.execute(stmt, {"path": path})
     
