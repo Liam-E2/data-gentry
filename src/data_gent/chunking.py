@@ -1,3 +1,4 @@
+import re
 from abc import ABC, abstractmethod
 from typing import Iterable, Callable
 
@@ -31,3 +32,19 @@ class SemchunkChunker:
 
     def chunk(self, text: str) -> list[str]:
         return self.chunker(text, overlap=self.overlap) # type: ignore
+
+
+class ParagraphChunker(Chunker):
+    """
+    Splits data into chunks, where each paragraph in the input document is a chunk.
+    Useful for manually/automatically generated data dictionaries where each column is defined in a paragraph.
+    """
+    def __init__(self):
+        pass
+
+    def chunk(self, text: str) -> list[str]:
+        """
+        Split text into paragraphs. Paragraphs are separated by one or more blank lines.
+        """
+        paragraphs = re.split(r'\n\s*\n', text)
+        return [p.strip() for p in paragraphs if p.strip()]
