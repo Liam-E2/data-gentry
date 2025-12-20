@@ -19,7 +19,9 @@ def docfile():
     file = NamedTemporaryFile()
     with open(file.name, 'wb') as f:
         f.write(data)
-    return file
+    
+    with open(file.name, "rb") as f:
+        yield f
 
 
 @fixture
@@ -36,7 +38,7 @@ def csvfile():
 def test_load_db(docfile):
     eng = get_sqlalchemy_engine()
     try:
-        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=8, overlap=0.0), docfile.name)
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=8, overlap=0.0), docfile)
 
         with eng.connect() as conn:
             rows: list[DocumentChunks] = conn.execute(select(DocumentChunks)).fetchall()
@@ -126,7 +128,7 @@ def test_load_document_deduplicates_chunks(docfile):
 
     try:
         # First load - should insert all chunks
-        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=8, overlap=0.0), docfile.name)
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=8, overlap=0.0), docfile)
 
         with eng.connect() as conn:
             first_load_chunks = conn.execute(select(DocumentChunks)).fetchall()
@@ -137,7 +139,7 @@ def test_load_document_deduplicates_chunks(docfile):
         assert first_count > 0
 
         # Second load of same document - should skip all chunks
-        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=8, overlap=0.0), docfile.name)
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=8, overlap=0.0), docfile)
 
         with eng.connect() as conn:
             second_load_chunks = conn.execute(select(DocumentChunks)).fetchall()

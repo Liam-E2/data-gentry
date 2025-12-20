@@ -166,7 +166,7 @@ def test_retrieve(docfile):
     eng = get_sqlalchemy_engine()
     FTS_WEIGHT = 0.75
     try:
-        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=10, overlap=0.0), docfile.name)
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=10, overlap=0.0), docfile)
         i = 0
         last_score = 10.0**99
         last_rank = -1
