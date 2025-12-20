@@ -5,16 +5,22 @@ from .settings import settings
 from .db_models import BaseTable
 
 
-def get_sqlalchemy_engine() -> Engine:
+BASE_EXTENSIONS = {"vss", "fts"}
+
+
+def get_sqlalchemy_engine(preload_extensions: set[str] = set()) -> Engine:
     """
     Returns a sqlalchemy engine with duckdb extensions vss and fts pre-loaded.
     """
+    exts = BASE_EXTENSIONS.union(preload_extensions)
     conn = duckdb.connect(":memory:")
-    conn.execute("INSTALL vss; INSTALL fts;")
+    for s in exts:
+        conn.execute(f"INSTALL {s}")
+
     conn.close()
     
     eng = create_engine("duckdb:///" + settings.db_path, poolclass=NullPool, connect_args={
-        "preload_extensions": ["vss", "fts"],
+        "preload_extensions": list(exts),
         "config": {"hnsw_enable_experimental_persistence": True}
     })
         

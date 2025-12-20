@@ -156,3 +156,18 @@ def test_load_document_deduplicates_chunks(docfile):
         raise
     finally:
         os.remove(settings.db_path)
+
+
+def test_httpfs_load():
+    engine = get_sqlalchemy_engine({"httpfs"})
+
+    try:
+        load_data(engine, "https://jsonplaceholder.typicode.com/todos/1", "json", "test")
+        with engine.connect() as conn:
+            results = conn.execute(text("SELECT * FROM test;")).fetchall()
+            assert len(results) == 1
+            assert results[0][0] == 1
+    except Exception:
+        raise
+    finally:
+        os.remove(settings.db_path)
