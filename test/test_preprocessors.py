@@ -28,15 +28,12 @@ def test_preprocess_pdf(minimal_pdf_bytes):
     """Test that PDF preprocessing converts PDF to markdown correctly."""
     markdown = preprocess_pdf(minimal_pdf_bytes)
 
-    # Verify the markdown contains the expected text
-    assert "Hello World" in markdown
-    assert "This is a test PDF document." in markdown
-
     # Verify it returns a string
     assert isinstance(markdown, str)
 
-    # Verify the markdown is not empty
-    assert len(markdown) > 0
+    # Verify the markdown contains the expected text
+    assert "Hello World" in markdown
+    assert "This is a test PDF document." in markdown
 
 
 def test_preprocess_pdf_empty():
@@ -50,3 +47,4 @@ def test_preprocess_pdf_empty():
     markdown = preprocess_pdf(buffer)
 
     assert isinstance(markdown, str)
+    assert len(markdown) == 0
