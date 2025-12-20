@@ -57,7 +57,7 @@ Test environment uses `pytest-env` plugin with overrides in `pyproject.toml`:
 - `INDEX_DDL`: Creates HNSW index on embeddings and FTS index on chunk content
 
 **Data Loading** (`load.py`):
-- `load_document()`: Loads text files, chunks them, generates embeddings, creates indices
+- `load_document()`: Loads strings, chunks them, generates embeddings, creates indices
 - `load_data()`: Loads structured data files (CSV, JSON, Parquet) into DuckDB tables
   - Supports auto-detection of file type from extension
   - Accepts DuckDB-specific read options via `opts` parameter
@@ -78,12 +78,18 @@ Test environment uses `pytest-env` plugin with overrides in `pyproject.toml`:
 **Chunking** (`chunking.py`):
 - Abstract `Chunker` interface with `chunk(text: str) -> Iterable[str]`
 - `SemchunkChunker`: Uses semchunk library with configurable tokenizer, chunk size, and overlap
+- `ParagraphChunker`: Naively chunks by splitting on `\n\n`
 
 **Connection** (`connection.py`):
 - `get_sqlalchemy_engine()`: Creates DuckDB engine with VSS and FTS extensions pre-loaded
 - Uses NullPool (no connection pooling)
 - Enables experimental HNSW persistence via config
 - Auto-creates tables via SQLAlchemy metadata
+- Can provide additional extensions to be loaded
+
+**Preprocessors** (`preprocessors.py`):
+- Processes binary files into chunkable strings.
+- Eg. parsing a PDF to markdown
 
 ### Critical Implementation Details
 

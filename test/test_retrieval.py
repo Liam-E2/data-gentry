@@ -8,7 +8,7 @@ from pytest import fixture, raises
 from src.data_gent.connection import get_sqlalchemy_engine
 from src.data_gent.settings import settings
 from src.data_gent.load import load_document
-from src.data_gent.retrieval import retrieve, RetrievalResult
+from src.data_gent.retrieval import retrieve, RetrievalResult, vector_search, fts_search
 from src.data_gent.embeddings import TestEmbeddingSource
 from src.data_gent.chunking import SemchunkChunker
 
@@ -194,5 +194,121 @@ def test_retrieve(docfile):
 
     except Exception:
         raise
+    finally:
+        os.remove(settings.db_path)
+
+
+def test_vector_search_table_creation(docfile):
+    """Verify vector_search creates temp table with correct schema."""
+    eng = get_sqlalchemy_engine()
+    try:
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=10, overlap=0.0), docfile)
+
+        with eng.begin() as conn:
+            # Create vector search temp table
+            query_emb = TestEmbeddingSource().get_embedding("test query")
+            table_name = vector_search(conn, query_emb, limit=10)
+
+            # Verify table exists and has correct schema
+            result = conn.execute(text(f"SELECT * FROM {table_name} LIMIT 1")).fetchone()
+            assert result is not None
+            assert len(result) == 3  # chunk_id, content, score
+
+            # Verify scores are raw (not normalized)
+            all_scores = conn.execute(
+                text(f"SELECT score FROM {table_name}")
+            ).fetchall()
+            assert all(score[0] > 0 for score in all_scores)  # Positive scores
+
+        # Verify cleanup after transaction
+        with raises(ProgrammingError):
+            with eng.connect() as conn:
+                conn.execute(text(f"SELECT * FROM {table_name}"))
+
+    finally:
+        os.remove(settings.db_path)
+
+
+def test_fts_search_table_creation(docfile):
+    """Verify fts_search creates temp table with correct schema."""
+    eng = get_sqlalchemy_engine()
+    try:
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=10, overlap=0.0), docfile)
+
+        with eng.begin() as conn:
+            # Create FTS search temp table
+            table_name = fts_search(conn, "Big River", limit=10)
+
+            # Verify table exists and has correct schema
+            result = conn.execute(text(f"SELECT * FROM {table_name} LIMIT 1")).fetchone()
+            assert result is not None
+            assert len(result) == 3  # chunk_id, content, score
+
+            # Verify scores are raw BM25 scores
+            all_scores = conn.execute(
+                text(f"SELECT score FROM {table_name}")
+            ).fetchall()
+            assert all(score[0] > 0 for score in all_scores)  # Positive BM25 scores
+
+        # Verify cleanup after transaction
+        with raises(ProgrammingError):
+            with eng.connect() as conn:
+                conn.execute(text(f"SELECT * FROM {table_name}"))
+
+    finally:
+        os.remove(settings.db_path)
+
+
+def test_independent_search_results(docfile):
+    """Verify vector and FTS searches can be called independently."""
+    eng = get_sqlalchemy_engine()
+    try:
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=10, overlap=0.0), docfile)
+
+        with eng.begin() as conn:
+            # Call both search functions
+            query_emb = TestEmbeddingSource().get_embedding("Big River")
+            vector_table = vector_search(conn, query_emb, limit=5)
+            fts_table = fts_search(conn, "Big River", limit=5)
+
+            # Verify both tables exist simultaneously
+            vector_results = conn.execute(text(f"SELECT COUNT(*) FROM {vector_table}")).fetchone()
+            fts_results = conn.execute(text(f"SELECT COUNT(*) FROM {fts_table}")).fetchone()
+
+            assert vector_results[0] > 0
+            assert fts_results[0] > 0
+
+            # Verify they have identical schemas (can be joined)
+            vector_cols = conn.execute(text(f"DESCRIBE {vector_table}")).fetchall()
+            fts_cols = conn.execute(text(f"DESCRIBE {fts_table}")).fetchall()
+
+            assert len(vector_cols) == len(fts_cols)
+            for v_col, f_col in zip(vector_cols, fts_cols):
+                assert v_col[0] == f_col[0]  # Column name matches
+
+    finally:
+        os.remove(settings.db_path)
+
+
+def test_retrieve_no_bm25_match(docfile):
+    """Verify behavior when BM25 query matches nothing."""
+    eng = get_sqlalchemy_engine()
+    try:
+        load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=10, overlap=0.0), docfile)
+
+        # Query for something that doesn't exist in BM25 index
+        results = retrieve(eng, "xyzabc123impossible", TestEmbeddingSource(), limit=5)
+
+        # Should not crash and should return results from vector search
+        assert len(results) > 0  # Vector search returns results
+        assert len(results) == 5  # Requested limit
+
+        # BM25 raw scores should be very low (close to default 0.0001) for non-matching queries
+        for result in results:
+            assert isinstance(result, RetrievalResult)
+            assert result.bm25_score < 0.01  # Raw BM25 score is low/default
+            assert result.cosine_similarity_score >= -1.0  # Valid cosine similarity range
+            assert result.cosine_similarity_score <= 1.0
+
     finally:
         os.remove(settings.db_path)
