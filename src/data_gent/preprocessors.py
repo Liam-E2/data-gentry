@@ -1,7 +1,8 @@
 from typing import BinaryIO
 
-from pymupdf4llm import to_markdown
-from pymupdf import Document
+from pymupdf4llm import to_markdown # type: ignore
+from pymupdf import Document # type: ignore
+
 
 
 def preprocess_pdf(pdf_bytes: BinaryIO) -> str:
