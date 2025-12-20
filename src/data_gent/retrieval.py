@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-
 from sqlalchemy import Engine, Connection, text
 
+from .utils import sanitized_uuid
 from .embeddings import EmbeddingSource
 from .settings import settings
 
@@ -38,7 +38,7 @@ def fts_search(
         - content (text): The chunk text content
         - score (float): Raw BM25 score (NOT normalized)
     """
-    table_name = "fts_search_results"
+    table_name = "fts_" + sanitized_uuid()
 
     query_sql = text(f"""
     CREATE TEMPORARY TABLE {table_name} AS
@@ -84,7 +84,7 @@ def vector_search(
         - content (text): The chunk text content
         - score (float): Raw cosine similarity score (NOT normalized)
     """
-    table_name = "vector_search_results"
+    table_name = "vss_" + sanitized_uuid()
 
     # Critical: Type casting to FLOAT[N] to hit HNSW index
     query = text(f"""
