@@ -207,7 +207,7 @@ def test_vector_search_table_creation(docfile):
         with eng.begin() as conn:
             # Create vector search temp table
             query_emb = TestEmbeddingSource().get_embedding("test query")
-            table_name = vector_search(conn, query_emb, limit=10)
+            table_name = vector_search(conn, query_emb, limit=10).__tablename__
 
             # Verify table exists and has correct schema
             result = conn.execute(text(f"SELECT * FROM {table_name} LIMIT 1")).fetchone()
@@ -237,7 +237,7 @@ def test_fts_search_table_creation(docfile):
 
         with eng.begin() as conn:
             # Create FTS search temp table
-            table_name = fts_search(conn, "Big River", limit=10)
+            table_name = fts_search(conn, "Big River", limit=10).__tablename__
 
             # Verify table exists and has correct schema
             result = conn.execute(text(f"SELECT * FROM {table_name} LIMIT 1")).fetchone()
@@ -268,8 +268,8 @@ def test_independent_search_results(docfile):
         with eng.begin() as conn:
             # Call both search functions
             query_emb = TestEmbeddingSource().get_embedding("Big River")
-            vector_table = vector_search(conn, query_emb, limit=5)
-            fts_table = fts_search(conn, "Big River", limit=5)
+            vector_table = vector_search(conn, query_emb, limit=5).__tablename__
+            fts_table = fts_search(conn, "Big River", limit=5).__tablename__
 
             # Verify both tables exist simultaneously
             vector_results = conn.execute(text(f"SELECT COUNT(*) FROM {vector_table}")).fetchone()

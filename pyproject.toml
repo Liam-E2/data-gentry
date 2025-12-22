@@ -27,3 +27,9 @@ dev = [
 [tool.pytest_env]
 DATAGENT_DB_PATH = "./db.duckdb"
 DATAGENT_VEC_SIZE = 3
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
