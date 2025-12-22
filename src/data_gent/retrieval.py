@@ -1,5 +1,10 @@
 from dataclasses import dataclass
-from sqlalchemy import Engine, Connection, text
+from typing import Callable, Protocol, Type
+from functools import wraps
+
+from sqlalchemy import Engine, Connection, text, Table, MetaData, Column, Integer, Float, Text, select, func, Select
+from sqlalchemy.orm import Mapped, outerjoin, mapped_column, declarative_base, DeclarativeBase
+from sqlalchemy.sql._typing import _HasClauseElement
 
 from .utils import sanitized_uuid
 from .embeddings import EmbeddingSource
@@ -17,6 +22,65 @@ class RetrievalResult:
     rank: int
 
 
+class ScoredChunks(Protocol):
+    __tablename__: str
+    chunk_id: Mapped[int]
+    content: Mapped[str]
+    score: Mapped[float]
+
+
+class JoinedScores(Protocol):
+    __tablename__: str
+    chunk_id: Mapped[int]
+    content: Mapped[str]
+    vector_score: Mapped[float]
+    fts_score: Mapped[float]
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+def scores_chunks(fn: Callable[..., str]) -> Callable[..., Type[ScoredChunks]]:
+    """
+    Given a function that creates a scored temp table with signature ... -> table_name, returns a function
+    ... -> Table, a SqlAlchemy table with columns chunk_id, content, and score.
+    """
+    @wraps(fn)
+    def _inner(*args, **kwargs):
+        table_name = fn(*args, **kwargs)
+        attrs = {
+            "__tablename__": table_name,
+            "chunk_id": mapped_column(Integer, primary_key=True),
+            "content": mapped_column(Text),
+            "score": mapped_column(Float),
+        }
+
+        return type(table_name, (Base,), attrs)
+
+    return _inner
+
+
+def joins_scores(fn: Callable[[Type[ScoredChunks], Type[ScoredChunks]], Select]) -> Callable[[Type[ScoredChunks], Type[ScoredChunks]], Type[JoinedScores]]:
+    @wraps(fn)
+    def _inner(fts_table: Type[ScoredChunks], vector_table: Type[ScoredChunks]):
+        result = fn(fts_table, vector_table).subquery()
+        class Joined(Base):
+            __table__ = result
+            __mapper_args__ = {
+                "primary_key": [result.c.chunk_id]
+            }
+            chunk_id: Mapped[int]
+            content: Mapped[str]
+            vector_score: Mapped[float]
+            fts_score: Mapped[float]
+
+        return Joined
+    
+    return _inner
+
+
+@scores_chunks
 def fts_search(
     conn: Connection,
     query: str,
@@ -63,6 +127,7 @@ def fts_search(
     return table_name
 
 
+@scores_chunks
 def vector_search(
     conn: Connection,
     query_embedding: list[float],
@@ -112,10 +177,22 @@ def vector_search(
     return table_name
 
 
+@joins_scores
+def outer_join_scores(fts_table: Type[ScoredChunks], vector_table: Type[ScoredChunks]) -> Select:
+    return select(
+            func.coalesce(vector_table.chunk_id, fts_table.chunk_id).label("chunk_id"),
+            func.coalesce(vector_table.content, fts_table.content).label("content"),
+            func.coalesce(fts_table.score, 0.0001).label("fts_score"),
+            func.coalesce(vector_table.score, -0.9999).label("vector_score")
+        ).select_from(
+            outerjoin(fts_table, vector_table, fts_table.chunk_id == vector_table.chunk_id, full=True)
+        )
+
+
 def _combine_weighted(
     conn: Connection,
-    vector_table: str,
-    fts_table: str,
+    vector_table: Type[ScoredChunks],
+    fts_table: Type[ScoredChunks],
     limit: int,
     fts_weight: float
 ) -> list[tuple]:
@@ -134,29 +211,22 @@ def _combine_weighted(
     Returns:
         List of tuples: (chunk_id, content, bm25_raw, bm25_normed, cosine_raw, cosine_normed)
     """
-    combine_query = text(f"""
-    WITH combined AS (
-        SELECT
-            COALESCE(v.chunk_id, f.chunk_id) AS chunk_id,
-            COALESCE(v.content, f.content) AS content,
-            COALESCE(f.score, 0.0001) AS fts_score,
-            COALESCE(v.score, -0.999) AS vector_score
-        FROM {fts_table} f
-        FULL OUTER JOIN {vector_table} v USING (chunk_id)
-    )
-    SELECT
-        chunk_id,
-        content,
-        fts_score as bm25_raw,
-        fts_score / MAX(fts_score) OVER () as bm25_normed,
-        vector_score as cosine_raw,
-        (vector_score + 1) / MAX(vector_score + 1) OVER () as cosine_normed
-    FROM combined
-    ORDER BY :ftsweight * bm25_normed + (1 - :ftsweight) * cosine_normed DESC
-    LIMIT :limit;
-    """)
+    joined = outer_join_scores(fts_table, vector_table)
+    bm25_normed = (joined.fts_score / func.max(joined.fts_score).over()).label("bm25_normed")
+    cosine_normed = ((joined.vector_score + 1) / func.max(joined.vector_score + 1).over()).label("cosine_normed")
 
-    results = conn.execute(combine_query, {
+    combined = select(
+        joined.chunk_id,
+        joined.content,
+        joined.fts_score.label("bm25_raw"),
+        bm25_normed,
+        joined.vector_score.label("cosine_raw"),
+        cosine_normed
+    ).select_from(joined).order_by(
+        ((fts_weight * bm25_normed) + ((1-fts_weight)* cosine_normed)).desc()
+    ).limit(limit)
+
+    results = conn.execute(combined, {
         "limit": limit,
         "ftsweight": fts_weight
     }).fetchall()
