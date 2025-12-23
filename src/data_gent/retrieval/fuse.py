@@ -22,6 +22,9 @@ def weighted_normalization(
     Returns:
         Executable SqlAlchemy select statement
     """
+    if fts_weight > 1.0 or fts_weight < 0.0:
+        raise ValueError("Invalid fts_weight: must satisfy 0.0 <= fts_weight <= 1.0")
+
 
     def _weighted_normalization(joined: Type[JoinedScores]) -> Select:
         bm25_normed = (joined.fts_score / func.max(joined.fts_score).over()).label("bm25_normed")
