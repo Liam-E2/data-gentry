@@ -23,7 +23,7 @@ def weighted_normalization(
         Executable SqlAlchemy select statement
     """
 
-    def _inner(joined: Type[JoinedScores]) -> Select:
+    def _weighted_normalization(joined: Type[JoinedScores]) -> Select:
         bm25_normed = (joined.fts_score / func.max(joined.fts_score).over()).label("bm25_normed")
         cosine_normed = ((joined.vector_score + 1) / func.max(joined.vector_score + 1).over()).label("cosine_normed")
 
@@ -40,4 +40,4 @@ def weighted_normalization(
 
         return combined
 
-    return _inner
+    return _weighted_normalization
