@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from sqlalchemy import Engine
 
@@ -22,16 +23,30 @@ class RetrievalResult:
 def retrieve(
         engine: Engine,
         query: str,
-        embedding_source: EmbeddingSource,
-        vector_score_config: VectorScoreConfig = VectorScoreConfig(),
-        fulltext_score_config: FullTextScoreConfig = FullTextScoreConfig(),
-        joiner: Joiner = outer_join_scores,
-        fuser: Fuser = weighted_normalization(limit=200, fts_weight=0.8)
+        query_embedder: EmbeddingSource,
+        vector_score_config: Optional[VectorScoreConfig] = None,
+        fulltext_score_config: Optional[FullTextScoreConfig] = None,
+        joiner: Optional[Joiner] = None,
+        fuser: Optional[Fuser] = None
         ) -> list[RetrievalResult]:
     """
-    Retrieve top-n records based on bm25 + cosine similarity.
+    Retrieve top-n records based on hybrid bm25 + cosine similarity.
+    Args:
+        engine: Sqlalchemy engine.
+        query: String to search for.
+        query_embedder: EmbeddingSource instance, used to get embedding for input query.
+        vector_score_config: Optional, config for semantic search.
+        fulltext_score_config: Optional, config for full-text search.
+        joiner: Optional, strategy for joining search results. Default: outer join.
+        fuser: Optional, strategy for generating final scores. Default: weighted normalization(limit=200, fts_weight=0.8).
     """
-    query_embedding = embedding_source.get_embedding(query)
+    # Defaults
+    vector_score_config = vector_score_config or VectorScoreConfig()
+    fulltext_score_config = fulltext_score_config or FullTextScoreConfig()
+    joiner = joiner or outer_join_scores
+    fuser = fuser or weighted_normalization(limit=200, fts_weight=0.8)
+
+    query_embedding = query_embedder.get_embedding(query)
 
     with engine.begin() as conn:
         FullTextTable = fts_search(conn, query, fulltext_score_config)
