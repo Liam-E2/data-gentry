@@ -2,13 +2,15 @@ from tempfile import NamedTemporaryFile
 import os
 
 from sqlalchemy.exc import ProgrammingError
-from sqlalchemy import text
+from sqlalchemy import text, select
 from pytest import fixture, raises
 
 from src.data_gent.connection import get_sqlalchemy_engine
 from src.data_gent.settings import settings
 from src.data_gent.load import load_document
-from src.data_gent.retrieval import retrieve, RetrievalResult, vector_search, fts_search
+from src.data_gent.retrieval import retrieve, RetrievalResult, weighted_normalization, VectorScoreConfig, FullTextScoreConfig
+from src.data_gent.retrieval.score import vector_search, fts_search
+
 from src.data_gent.embeddings import TestEmbeddingSource
 from src.data_gent.chunking import SemchunkChunker
 
@@ -170,7 +172,12 @@ def test_retrieve(docfile):
         i = 0
         last_score = 10.0**99
         last_rank = -1
-        for row in retrieve(eng, "Big River", TestEmbeddingSource(), limit=5, fts_weight=FTS_WEIGHT):
+        for row in retrieve(
+            eng, 
+            "Big River", 
+            TestEmbeddingSource(), 
+            fuser=weighted_normalization(limit=5, fts_weight=FTS_WEIGHT)
+            ):
             assert isinstance(row, RetrievalResult)
             # All test embeddings are the same, and should equal max, or aren't present, and should equal min
             assert round(row.cosine_similarity_score_normed*10) == 10 or round(row.cosine_similarity_score_normed*10) == 0.0
@@ -208,10 +215,14 @@ def test_vector_search_table_creation(docfile):
         with eng.begin() as conn:
             # Create vector search temp table
             query_emb = TestEmbeddingSource().get_embedding("test query")
-            table_name = vector_search(conn, query_emb, limit=10).__tablename__
+            ResultsTable = vector_search(conn, query_emb, VectorScoreConfig(limit=10))
+            table_name = ResultsTable.__tablename__
 
             # Verify table exists and has correct schema
-            result = conn.execute(text(f"SELECT * FROM {table_name} LIMIT 1")).fetchone()
+            results = conn.execute(select(ResultsTable)).fetchall()
+            assert len(results) == 10
+
+            result = results[0]
             assert result is not None
             assert len(result) == 3  # chunk_id, content, score
 
@@ -238,10 +249,12 @@ def test_fts_search_table_creation(docfile):
 
         with eng.begin() as conn:
             # Create FTS search temp table
-            table_name = fts_search(conn, "Big River", limit=10).__tablename__
+            ResultsTable = fts_search(conn, "Big River", FullTextScoreConfig(limit=10))
+            table_name = ResultsTable.__tablename__
 
             # Verify table exists and has correct schema
-            result = conn.execute(text(f"SELECT * FROM {table_name} LIMIT 1")).fetchone()
+            results = conn.execute(select(ResultsTable)).fetchall()
+            result = results[0]
             assert result is not None
             assert len(result) == 3  # chunk_id, content, score
 
@@ -269,8 +282,8 @@ def test_independent_search_results(docfile):
         with eng.begin() as conn:
             # Call both search functions
             query_emb = TestEmbeddingSource().get_embedding("Big River")
-            vector_table = vector_search(conn, query_emb, limit=5).__tablename__
-            fts_table = fts_search(conn, "Big River", limit=5).__tablename__
+            vector_table = vector_search(conn, query_emb, VectorScoreConfig(limit=5)).__tablename__
+            fts_table = fts_search(conn, "Big River", FullTextScoreConfig(limit=5)).__tablename__
 
             # Verify both tables exist simultaneously
             vector_results = conn.execute(text(f"SELECT COUNT(*) FROM {vector_table}")).fetchone()
@@ -298,7 +311,7 @@ def test_retrieve_no_bm25_match(docfile):
         load_document(eng, TestEmbeddingSource(), SemchunkChunker(chunk_size=10, overlap=0.0), docfile)
 
         # Query for something that doesn't exist in BM25 index
-        results = retrieve(eng, "xyzabc123impossible", TestEmbeddingSource(), limit=5)
+        results = retrieve(eng, "xyzabc123impossible", TestEmbeddingSource(), fuser=weighted_normalization(limit=5, fts_weight=0.8))
 
         # Should not crash and should return results from vector search
         assert len(results) > 0  # Vector search returns results

@@ -24,14 +24,29 @@ class Base(DeclarativeBase):
 
 
 class ScoredChunks(Protocol):
+    """
+    Protocol class defining a temp table holding scoring results
+    (for compatibility with SQLAlchemy/duckdb extension quirks)
+    """
     __tablename__: str
     chunk_id: Mapped[int]
     content: Mapped[str]
     score: Mapped[float]
 
 
-VectorScorer = Callable[[Connection, list[float]], Type[ScoredChunks]]
-FullTextScorer = Callable[[Connection, str], Type[ScoredChunks]]
+@dataclass(frozen=True)
+class VectorScoreConfig:
+    limit: int = 100
+    
+
+@dataclass(frozen=True)
+class FullTextScoreConfig:
+    limit: int = 100
+
+
+VectorScorer = Callable[[Connection, list[float], VectorScoreConfig], Type[ScoredChunks]]
+FullTextScorer = Callable[[Connection, str, FullTextScoreConfig], Type[ScoredChunks]]
+
 
 def scores_chunks(fn: Callable[P, str]) -> Callable[P, Type[ScoredChunks]]:
     """
@@ -57,7 +72,7 @@ def scores_chunks(fn: Callable[P, str]) -> Callable[P, Type[ScoredChunks]]:
 def fts_search(
     conn: Connection,
     query: str,
-    limit: int = 200,
+    config: FullTextScoreConfig,
 ) -> str:
     """
     Perform BM25 full-text search and store results in a temporary table.
@@ -94,7 +109,7 @@ def fts_search(
 
     conn.execute(query_sql, {
         "query": query,
-        "limit": limit
+        "limit": config.limit
     })
 
     return table_name
@@ -103,8 +118,8 @@ def fts_search(
 @scores_chunks
 def vector_search(
     conn: Connection,
-    query_embedding: list[float],
-    limit: int = 200,
+    query_vec: list[float],
+    config: VectorScoreConfig
 ) -> str:
     """
     Perform HNSW vector similarity search and store results in a temporary table.
@@ -143,8 +158,8 @@ def vector_search(
     """)
 
     conn.execute(query, {
-        "queryvec": query_embedding,
-        "limit": limit
+        "queryvec": query_vec,
+        "limit": config.limit
     })
 
     return table_name

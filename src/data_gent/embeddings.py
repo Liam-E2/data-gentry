@@ -47,7 +47,7 @@ class TestEmbeddingSource(EmbeddingSource):
         super().__init__(cache_size=cache_size, **kwargs)
 
     def _get_embedding(self, text: str) -> List[float]:
-        return [1.0 for i in range(settings.vec_size)]
+        return [1.0 for _ in range(settings.vec_size)]
 
 
 class BedrockEmbeddingSource(EmbeddingSource):
