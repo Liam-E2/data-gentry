@@ -4,15 +4,13 @@ Defines interfaces and implementations for:
   - Joining: Join together 2 ScoredChunks
 """
 from dataclasses import dataclass
-from typing import Callable, Protocol, Type, ParamSpec, Concatenate, Union
+from typing import Callable, Protocol, Type, ParamSpec
 from functools import wraps
 
-from sqlalchemy import Engine, Connection, text, Table, MetaData, Column, Integer, Float, Text, select, func, Select
-from sqlalchemy.orm import Mapped, outerjoin, mapped_column, declarative_base, DeclarativeBase
-from sqlalchemy.sql._typing import _HasClauseElement
+from sqlalchemy import Engine, Connection, text, Integer, Float, Text
+from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 
 from data_gent.utils import sanitized_uuid
-from data_gent.embeddings import EmbeddingSource
 from data_gent.settings import settings
 
 
@@ -42,6 +40,10 @@ class VectorScoreConfig:
 @dataclass(frozen=True)
 class FullTextScoreConfig:
     limit: int = 100
+    conjunctive: bool = False # All terms must be present to match
+    # bm25 params
+    b: float = 0.75
+    k: float = 1.2 
 
 
 VectorScorer = Callable[[Connection, list[float], VectorScoreConfig], Type[ScoredChunks]]
@@ -100,7 +102,10 @@ def fts_search(
         fts_main_document_chunks.match_bm25(
             chunk_id,
             :query,
-            fields := 'content'
+            fields := 'content',
+            conjunctive := :conjunctive,
+            b := :b,
+            k := :k
         ) AS score
     FROM document_chunks
     ORDER BY score DESC
@@ -109,7 +114,10 @@ def fts_search(
 
     conn.execute(query_sql, {
         "query": query,
-        "limit": config.limit
+        "limit": config.limit,
+        "conjunctive": config.conjunctive,
+        "b": config.b,
+        "k": config.k
     })
 
     return table_name
