@@ -4,7 +4,7 @@ Defines interfaces and implementations for:
   - Joining: Join together 2 ScoredChunks
 """
 from dataclasses import dataclass
-from typing import Callable, Protocol, Type
+from typing import Callable, Protocol, Type, ParamSpec, Concatenate, Union
 from functools import wraps
 
 from sqlalchemy import Engine, Connection, text, Table, MetaData, Column, Integer, Float, Text, select, func, Select
@@ -14,6 +14,9 @@ from sqlalchemy.sql._typing import _HasClauseElement
 from data_gent.utils import sanitized_uuid
 from data_gent.embeddings import EmbeddingSource
 from data_gent.settings import settings
+
+
+P = ParamSpec("P")
 
 
 class Base(DeclarativeBase):
@@ -27,8 +30,10 @@ class ScoredChunks(Protocol):
     score: Mapped[float]
 
 
-Scorer = Callable[..., Type[ScoredChunks]]
-def scores_chunks(fn: Callable[..., str]) -> Scorer:
+VectorScorer = Callable[[Connection, list[float]], Type[ScoredChunks]]
+FullTextScorer = Callable[[Connection, str], Type[ScoredChunks]]
+
+def scores_chunks(fn: Callable[P, str]) -> Callable[P, Type[ScoredChunks]]:
     """
     Given a function that creates a scored temp table with signature ... -> table_name, returns a function
     ... -> Table, a SqlAlchemy table with columns chunk_id, content, and score.
@@ -119,7 +124,7 @@ def vector_search(
     """
     table_name = "vss_" + sanitized_uuid()
 
-    # Critical: Type casting to FLOAT[N] to hit HNSW index
+    # Nasty hack: Type casting to FLOAT[N] and using temp table to hit HNSW index
     query = text(f"""
     CREATE TEMPORARY TABLE {table_name} AS
     SELECT

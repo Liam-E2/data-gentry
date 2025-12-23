@@ -1,11 +1,13 @@
 from dataclasses import dataclass
-from typing import Type
+from typing import Type, Callable, TypeVar, Concatenate, ParamSpec
+from functools import wraps
 
-from sqlalchemy import Engine, Connection, select, func
+from sqlalchemy import Engine, Connection, Select, select, func
 
 from data_gent.embeddings import EmbeddingSource
-from data_gent.retrieval.join import outer_join_scores
-from data_gent.retrieval.score import fts_search, vector_search, ScoredChunks
+from data_gent.retrieval.join import outer_join_scores, Joiner, JoinedScores
+from data_gent.retrieval.score import fts_search, vector_search, VectorScorer, FullTextScorer
+from data_gent.retrieval.util import with_requested_kwargs
 
 
 @dataclass
@@ -19,13 +21,14 @@ class RetrievalResult:
     rank: int
 
 
-def combine_weighted(
-    conn: Connection,
-    vector_table: Type[ScoredChunks],
-    fts_table: Type[ScoredChunks],
-    limit: int,
-    fts_weight: float
-) -> list[tuple]:
+Fuser = Callable[[Type[JoinedScores]], Select]
+
+
+def weighted_normalization(
+    joined: Type[JoinedScores],
+    limit: int = 200,
+    fts_weight: float = 0.8
+) -> Select:
     """
     Combine vector and FTS results using weighted normalization.
 
@@ -37,9 +40,8 @@ def combine_weighted(
         fts_weight: Weight for FTS scores (0.0 to 1.0)
 
     Returns:
-        List of tuples: (chunk_id, content, bm25_raw, bm25_normed, cosine_raw, cosine_normed)
+        Executably SqlAlchemy select statement
     """
-    joined = outer_join_scores(fts_table, vector_table)
     bm25_normed = (joined.fts_score / func.max(joined.fts_score).over()).label("bm25_normed")
     cosine_normed = ((joined.vector_score + 1) / func.max(joined.vector_score + 1).over()).label("cosine_normed")
 
@@ -54,34 +56,28 @@ def combine_weighted(
         ((fts_weight * bm25_normed) + ((1-fts_weight)* cosine_normed)).desc()
     ).limit(limit)
 
-    results = conn.execute(combined, {
-        "limit": limit,
-        "ftsweight": fts_weight
-    }).fetchall()
-
-    return [tuple(row) for row in results]
+    return combined
 
 
 def retrieve(
         engine: Engine,
         query: str,
         embedding_source: EmbeddingSource,
-        limit: int,
-        cosine_limit: int = 200,
-        fts_limit: int = 200,
-        fts_weight: float = 0.8) -> list[RetrievalResult]:
+        vector_scorer: VectorScorer = vector_search,
+        fulltext_scorer: FullTextScorer = fts_search,
+        joiner: Joiner = outer_join_scores,
+        fuser: Fuser = weighted_normalization,
+        **kwargs) -> list[RetrievalResult]:
     """
     Retrieve top-n records based on bm25 + cosine similarity.
-
-    NOTE: to actually hit the index, has to be computed seperately - the duckdb extension
-    doesn't recognize subqueries/window functions/etc. that could be accelerated.
     """
     query_embedding = embedding_source.get_embedding(query)
 
     with engine.begin() as conn:
-        vector_table = vector_search(conn, query_embedding, cosine_limit)
-        fts_table = fts_search(conn, query, fts_limit)
-        result = combine_weighted(conn, vector_table, fts_table, limit, fts_weight)
+        FullTextTable = with_requested_kwargs(fulltext_scorer)(conn, query, **kwargs)
+        VectorTable = with_requested_kwargs(vector_scorer)(conn, query_embedding, **kwargs)
+        JoinedScores = with_requested_kwargs(joiner)(FullTextTable, VectorTable, **kwargs)
+        result = conn.execute(with_requested_kwargs(fuser)(JoinedScores, **kwargs)).fetchall()
 
     return [
         RetrievalResult(row[0], row[1], row[2], row[3], row[4], row[5], i)

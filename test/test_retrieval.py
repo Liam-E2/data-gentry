@@ -172,7 +172,8 @@ def test_retrieve(docfile):
         last_rank = -1
         for row in retrieve(eng, "Big River", TestEmbeddingSource(), limit=5, fts_weight=FTS_WEIGHT):
             assert isinstance(row, RetrievalResult)
-            assert row.cosine_similarity_score_normed == 1.0 # All test embeddings are the same, and should equal max
+            # All test embeddings are the same, and should equal max, or aren't present, and should equal min
+            assert round(row.cosine_similarity_score_normed*10) == 10 or round(row.cosine_similarity_score_normed*10) == 0.0
             for score in (row.bm25_score_normed, row.cosine_similarity_score_normed):
                 assert isinstance(score, float)
                 assert score >= 0

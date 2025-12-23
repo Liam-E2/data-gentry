@@ -33,3 +33,7 @@ pythonpath = ["src"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.mypy]
+packages = ["data_gent"]
+mypy_path = "src"
