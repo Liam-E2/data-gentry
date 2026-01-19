@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - "v*"
-    branches:
-      - main
 
 permissions:
   contents: read
@@ -36,9 +34,7 @@ jobs:
           fi
 
       - name: Build
-        uses: astral-sh/setup-uv@v7
         run: uv build
 
       - name: Publish via PyPI Trusted Publisher
-        uses: astral-sh/setup-uv@v7
         run: uv publish
