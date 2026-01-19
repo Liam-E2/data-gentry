@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, Engine, NullPool
 from sqlalchemy.orm import Session
 import duckdb
 
-from src.data_gent.db_models import BaseTable
+from src.data_gentry.db_models import BaseTable
 
 
 @fixture(scope="function")

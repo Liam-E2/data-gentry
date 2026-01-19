@@ -6,11 +6,11 @@ os.environ["DATAGENT_DB_PATH"] = "./db.duckdb"
 
 import boto3
 
-from data_gent.load import load_data, load_document
-from data_gent.connection import get_sqlalchemy_engine
-from data_gent.embeddings import BedrockEmbeddingSource
-from data_gent.chunking import ParagraphChunker
-from data_gent.retrieval import retrieve, RetrievalResult
+from data_gentry.load import load_data, load_document
+from data_gentry.connection import get_sqlalchemy_engine
+from data_gentry.embeddings import BedrockEmbeddingSource
+from data_gentry.chunking import ParagraphChunker
+from data_gentry.retrieval import retrieve, RetrievalResult
 
 # Load Data
 engine = get_sqlalchemy_engine({"httpfs"})

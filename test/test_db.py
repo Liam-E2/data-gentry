@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from src.data_gent.db_models import Documents,  DocumentChunks
-from src.data_gent.settings import settings
+from src.data_gentry.db_models import Documents,  DocumentChunks
+from src.data_gentry.settings import settings
 
 
 def test_create_documents_table(db_session):

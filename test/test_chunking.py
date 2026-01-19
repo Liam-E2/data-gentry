@@ -1,4 +1,4 @@
-from src.data_gent.chunking import ParagraphChunker
+from src.data_gentry.chunking import ParagraphChunker
 
 
 def test_paragraph_chunker_basic():

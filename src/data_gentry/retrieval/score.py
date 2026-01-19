@@ -10,8 +10,8 @@ from functools import wraps
 from sqlalchemy import Engine, Connection, text, Integer, Float, Text
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 
-from data_gent.utils import sanitized_uuid
-from data_gent.settings import settings
+from data_gentry.utils import sanitized_uuid
+from data_gentry.settings import settings
 
 
 P = ParamSpec("P")

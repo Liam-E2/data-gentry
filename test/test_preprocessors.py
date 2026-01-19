@@ -4,7 +4,7 @@ from pytest import fixture
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 
-from src.data_gent.preprocessors import preprocess_pdf
+from src.data_gentry.preprocessors import preprocess_pdf
 
 
 @fixture

@@ -3,10 +3,10 @@ from typing import Optional
 
 from sqlalchemy import Engine
 
-from data_gent.embeddings import EmbeddingSource
-from data_gent.retrieval.join import outer_join_scores, Joiner
-from data_gent.retrieval.score import fts_search, vector_search, VectorScoreConfig, FullTextScoreConfig
-from data_gent.retrieval.fuse import weighted_normalization, Fuser
+from data_gentry.embeddings import EmbeddingSource
+from data_gentry.retrieval.join import outer_join_scores, Joiner
+from data_gentry.retrieval.score import fts_search, vector_search, VectorScoreConfig, FullTextScoreConfig
+from data_gentry.retrieval.fuse import weighted_normalization, Fuser
 
 
 @dataclass

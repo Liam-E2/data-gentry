@@ -2,7 +2,7 @@ from typing import Type, Callable
 
 from sqlalchemy import Select, select, func
 
-from data_gent.retrieval.join import JoinedScores
+from data_gentry.retrieval.join import JoinedScores
 
 
 Fuser = Callable[[Type[JoinedScores]], Select]

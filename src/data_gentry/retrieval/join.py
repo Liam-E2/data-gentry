@@ -4,7 +4,7 @@ from functools import wraps
 from sqlalchemy import select, func, Select
 from sqlalchemy.orm import Mapped, outerjoin, DeclarativeBase
 
-from data_gent.retrieval.score import ScoredChunks
+from data_gentry.retrieval.score import ScoredChunks
 
 
 class Base(DeclarativeBase):

@@ -217,7 +217,7 @@ wheels = [
 ]
 
 [[package]]
-name = "data-gent"
+name = "data-gentry"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

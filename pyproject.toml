@@ -1,7 +1,7 @@
 [project]
-name = "data-gent"
+name = "data-gentry"
 version = "0.1.0"
-description = "Add your description here"
+description = "A library for packaging together data + documentation into an agent-friendly duckdb artifact."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -39,5 +39,5 @@ pythonpath = ["src"]
 where = ["src"]
 
 [tool.mypy]
-packages = ["data_gent"]
+packages = ["data_gentry"]
 mypy_path = "src"

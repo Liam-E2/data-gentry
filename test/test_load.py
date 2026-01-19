@@ -5,12 +5,12 @@ from csv import DictWriter
 from sqlalchemy import select, text
 from pytest import fixture
 
-from src.data_gent.connection import get_sqlalchemy_engine
-from src.data_gent.settings import settings
-from src.data_gent.load import load_document, load_data
-from src.data_gent.embeddings import TestEmbeddingSource
-from src.data_gent.chunking import SemchunkChunker
-from src.data_gent.db_models import DocumentChunks
+from src.data_gentry.connection import get_sqlalchemy_engine
+from src.data_gentry.settings import settings
+from src.data_gentry.load import load_document, load_data
+from src.data_gentry.embeddings import TestEmbeddingSource
+from src.data_gentry.chunking import SemchunkChunker
+from src.data_gentry.db_models import DocumentChunks
 
 
 @fixture

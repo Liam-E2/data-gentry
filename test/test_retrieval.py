@@ -5,14 +5,14 @@ from sqlalchemy.exc import ProgrammingError
 from sqlalchemy import text, select
 from pytest import fixture, raises
 
-from src.data_gent.connection import get_sqlalchemy_engine
-from src.data_gent.settings import settings
-from src.data_gent.load import load_document
-from src.data_gent.retrieval import retrieve, RetrievalResult, weighted_normalization, VectorScoreConfig, FullTextScoreConfig
-from src.data_gent.retrieval.score import vector_search, fts_search
+from src.data_gentry.connection import get_sqlalchemy_engine
+from src.data_gentry.settings import settings
+from src.data_gentry.load import load_document
+from src.data_gentry.retrieval import retrieve, RetrievalResult, weighted_normalization, VectorScoreConfig, FullTextScoreConfig
+from src.data_gentry.retrieval.score import vector_search, fts_search
 
-from src.data_gent.embeddings import TestEmbeddingSource
-from src.data_gent.chunking import SemchunkChunker
+from src.data_gentry.embeddings import TestEmbeddingSource
+from src.data_gentry.chunking import SemchunkChunker
 
 
 @fixture
