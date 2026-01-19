@@ -6,7 +6,7 @@ A small library for creating efficient file-specific agents / RAG systems with d
 
 ## Overview
 
-Data Gent packages together:
+Data Gentry packages together:
   - Loading data files and data documentation into a duckdb database with pre-built vector and full-text indices
 on the data dictionary's contents. 
   - Simple interfaces for chunking + embedding documents and loading data, allowing the user to customize how the duckdb artifact is created.
