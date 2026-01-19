@@ -1,6 +1,6 @@
 [project]
 name = "data-gentry"
-version = "0.1.1"
+version = "0.1.2"
 description = "A library for packaging together data + documentation into an agent-friendly duckdb artifact."
 readme = "README.md"
 requires-python = ">=3.14"
